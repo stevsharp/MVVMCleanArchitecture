@@ -1,0 +1,59 @@
+﻿<Window x:Class="WpfAppCleanArchitecture.View.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfAppCleanArchitecture.View" 
+        xmlns:converters="clr-namespace:WpfAppCleanArchitecture.Converters"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <converters:NullToBoolConverter x:Key="NullToBoolConverter"/>
+    </Window.Resources>
+    <DockPanel>
+        <!-- Toolbar -->
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10">
+
+            <Button Content="Add Customer" Command="{Binding AddCustomerCommand}" Margin="0,0,10,0"/>
+            <Button Content="Edit Customer" Command="{Binding EditCustomerCommand}" Margin="0,0,10,0" IsEnabled="{Binding SelectedCustomer, Converter={StaticResource NullToBoolConverter}}" />
+            <Button Content="Delete Customer" Command="{Binding DeleteCustomerCommand}" IsEnabled="{Binding SelectedCustomer, Converter={StaticResource NullToBoolConverter}}" />
+
+            <Button Content="Load Customers" Margin="0,0,10,0"
+                    Command="{Binding LoadCustomersCommand}" />
+            <Button Content="Cancel" 
+                    Command="{Binding CancelLoadingCommand}" />
+        </StackPanel>
+
+        <Grid Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Customers -->
+            <DataGrid Grid.Column="0"
+                      ItemsSource="{Binding Customers}"
+                      SelectedItem="{Binding SelectedCustomer, Mode=TwoWay}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False" Margin="5">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" IsReadOnly="True" Width="Auto" />
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Orders -->
+            <DataGrid Grid.Column="1"
+                      ItemsSource="{Binding Orders}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False" Margin="5">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" IsReadOnly="True" Width="Auto" />
+                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </DockPanel>
+ 
+</Window>
