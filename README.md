@@ -38,24 +38,21 @@ This project is a modern WPF desktop application using **Clean Architecture** pr
 ```bash
 git clone https://github.com/your-username/WpfAppCleanArchitecture.git
 cd WpfAppCleanArchitecture
-
+---
 2. Run EF Core migration (once)
+---
 bash
-Copy
-Edit
+
 dotnet ef migrations add InitialCreate -s WpfAppCleanArchitecture
 dotnet ef database update -s WpfAppCleanArchitecture
 If dotnet ef is not recognized, run: dotnet tool install --global dotnet-ef
 
+---
 3. Run the app
-bash
-Copy
-Edit
+---
 dotnet run --project WpfAppCleanArchitecture
 📂 Project Structure
-bash
-Copy
-Edit
+
 WpfAppCleanArchitecture/
 │
 ├── Domain/                  # Entities, Interfaces
@@ -74,22 +71,6 @@ Validates Name field (required, length)
 
 Saves to database and updates ObservableCollection
 
-🔐 License
-MIT © 2025 YourName
 
-python
-Copy
-Edit
-
----
-
-Let me know if you'd like:
-- A Greek version
-- Screenshots or GIFs
-- GitHub badges for CI/.NET version
-
-I'll also help you publish it to GitHub if needed.
-
-Tools
 
 
