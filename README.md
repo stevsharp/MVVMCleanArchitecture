@@ -22,7 +22,7 @@ This project is a modern WPF desktop application using **Clean Architecture** pr
 
 ## 🛠️ Tech Stack
 
-- [.NET 8.0](https://dotnet.microsoft.com/)
+- [.NET 9.0](https://dotnet.microsoft.com/)
 - WPF (.NET Desktop)
 - Entity Framework Core
 - SQLite
