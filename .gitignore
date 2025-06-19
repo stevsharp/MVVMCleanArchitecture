@@ -1,0 +1,17 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/WpfAppCleanArchitecture
+/SharedKernel/bin/Debug/net9.0
+/SharedKernel/obj
+/Wpf.Application/obj
+/Wpf.Domain/bin/Debug/net9.0
+/Wpf.Application/bin/Debug/net9.0
+/Wpf.Domain/obj
+/Wpf.Infrastructure/bin/Debug/net9.0
+/Wpf.Infrastructure/obj/Debug/net9.0
+/Wpf.Infrastructure/obj
+/WpfAppCleanArchitecture/bin/Debug/net9.0-windows
+/WpfAppCleanArchitecture/obj/Debug/net9.0-windows
+/WpfAppCleanArchitecture/obj
