@@ -1,3 +1,7 @@
+## Connect with Me
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue)](https://www.linkedin.com/in/spyros-ponaris-913a6937/)
+
 # 🧱 WPF Clean Architecture - Master Detail App
 
 This project is a modern WPF desktop application using **Clean Architecture** principles. It showcases a basic **Customer–Order** master-detail interface with proper layering, validation, and MVVM patterns.
@@ -72,5 +76,7 @@ Validates Name field (required, length)
 Saves to database and updates ObservableCollection
 
 
+## Connect with Me
 
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue)](https://www.linkedin.com/in/spyros-ponaris-913a6937/)
 
