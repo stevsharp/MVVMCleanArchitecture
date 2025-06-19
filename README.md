@@ -74,9 +74,3 @@ Opens a dialog with CustomerDialogViewModel
 Validates Name field (required, length)
 
 Saves to database and updates ObservableCollection
-
-
-## Connect with Me
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue)](https://www.linkedin.com/in/spyros-ponaris-913a6937/)
-
