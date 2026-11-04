@@ -1,90 +1,92 @@
-﻿
+﻿using System.IO;
+using System.Windows;
 
-using FluentValidation;
-
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-using System.Windows;
-
-using Wpf.Application.DTOs;
-using Wpf.Application.Validaton;
-using Wpf.Infrastructure.Data;
-using Wpf.Infrastructure.Mapping;
+using Wpf.Application;
+using Wpf.Infrastructure;
 
 using WpfAppCleanArchitecture.View;
+using WpfAppCleanArchitecture.ViewModels;
 
-namespace WpfAppCleanArchitecture
+namespace WpfAppCleanArchitecture;
+
+public partial class App : System.Windows.Application
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App : Application
+    private const string AppFolderName = "WpfAppCleanArchitecture";
+
+    private readonly IHost _host;
+
+    public App()
     {
-        public static IHost AppHost { get; private set; } = null!;
-
-        public App()
-        {
-            AppHost = Host.CreateDefaultBuilder()
-                .ConfigureAppConfiguration(config =>
-                {
-                    config.AddJsonFile("appsettings.json", optional: true);
-                })
-                .ConfigureServices((context, services) =>
-                {
-                    string connectionString = context.Configuration.GetConnectionString("Default")
-                                              ?? "Data Source=app.db";
-
-                    services.AddDbContext<AppDbContext>(options =>
-                        options.UseSqlite("Data Source=app.db"));
-
-                    services.AddDbContextFactory<AppDbContext>(options =>
-                        options.UseSqlite("Data Source=app.db"));
-
-                    services.AddSingleton<IValidator<CustomerDto>, CustomerValidator>();
-                    services.AddSingleton<IValidator<OrderDto>, OrderValidator>();
-
-                    services.AddScoped<ICustomerService, CustomerService>();
-
-                    services.AddSingleton<CustomerMapper>();
-                    services.AddSingleton<OrderMapper>();
-
-                    services.AddSingleton<MainViewModel>();
-                    services.AddSingleton<MainWindow>(provider =>
-                    {
-                        var vm = provider.GetRequiredService<MainViewModel>();
-                        return new MainWindow { DataContext = vm };
-                    });
-                })
-                .Build();
-        }
-
-        protected override async void OnStartup(StartupEventArgs e)
-        {
-            using (var scope = AppHost.Services.CreateScope())
+        _host = Host.CreateDefaultBuilder()
+            .UseContentRoot(AppContext.BaseDirectory)
+            .ConfigureServices((context, services) =>
             {
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var connectionString = context.Configuration.GetConnectionString("Default");
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    connectionString = DefaultConnectionString();
 
-                db.Database.Migrate(); // ✅ This ensures schema is created/applied
+                services
+                    .AddApplication()
+                    .AddInfrastructure(connectionString)
+                    .AddPresentation();
+            })
+            .Build();
+    }
 
-                AppDbSeeder.Seed(db); // ✅ Seed after migration
-            }
+    protected override async void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
 
-
-            await AppHost.StartAsync();
-            var mainWindow = AppHost.Services.GetRequiredService<MainWindow>();
-            mainWindow.Show();
-            base.OnStartup(e);
-        }
-
-        protected override async void OnExit(ExitEventArgs e)
+        try
         {
-            await AppHost.StopAsync();
-            AppHost.Dispose();
-            base.OnExit(e);
+            await _host.StartAsync();
+            await _host.Services.InitializeDatabaseAsync();
+
+            var mainWindow = _host.Services.GetRequiredService<MainWindow>();
+            mainWindow.Show();
+
+            var viewModel = _host.Services.GetRequiredService<MainViewModel>();
+            await viewModel.LoadCustomersCommand.ExecuteAsync(null);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"The application failed to start.\n\n{ex.Message}",
+                "Startup error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+
+            Shutdown(-1);
         }
     }
 
+    protected override async void OnExit(ExitEventArgs e)
+    {
+        try
+        {
+            await _host.StopAsync();
+        }
+        finally
+        {
+            _host.Dispose();
+        }
+
+        base.OnExit(e);
+    }
+
+    /// <summary>Stores the database under %LocalAppData% so it does not depend on the working directory.</summary>
+    private static string DefaultConnectionString()
+    {
+        var folder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            AppFolderName);
+
+        Directory.CreateDirectory(folder);
+
+        return $"Data Source={Path.Combine(folder, "app.db")}";
+    }
 }

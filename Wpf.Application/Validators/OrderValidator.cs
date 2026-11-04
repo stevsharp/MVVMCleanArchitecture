@@ -1,20 +1,20 @@
-﻿
-
-using FluentValidation;
+﻿using FluentValidation;
 
 using Wpf.Application.DTOs;
 
-namespace Wpf.Application.Validaton;
+namespace Wpf.Application.Validators;
 
-public class OrderValidator : AbstractValidator<OrderDto>
+public sealed class OrderValidator : AbstractValidator<OrderDto>
 {
+    public const int DescriptionMaxLength = 500;
+
     public OrderValidator()
     {
         RuleFor(o => o.Description)
             .NotEmpty()
             .WithMessage("Description is required.")
-            .MaximumLength(500)
-            .WithMessage("Description cannot exceed 500 characters.");
+            .MaximumLength(DescriptionMaxLength)
+            .WithMessage($"Description cannot exceed {DescriptionMaxLength} characters.");
 
         RuleFor(o => o.CustomerId)
             .GreaterThan(0)

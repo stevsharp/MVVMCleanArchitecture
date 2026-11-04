@@ -1,17 +1,11 @@
-﻿using System;
-using System.Linq;
-using System.Windows;
+﻿using System.Windows;
 
-namespace WpfAppCleanArchitecture.View
+namespace WpfAppCleanArchitecture.View;
+
+public partial class MainWindow : Window
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    public partial class MainWindow : Window
+    public MainWindow()
     {
-        public MainWindow()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
     }
 }

@@ -1,121 +1,166 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Collections.ObjectModel;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using FluentValidation;
 
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Windows;
-
 using Wpf.Application.DTOs;
-using Wpf.Domain.Entities;
+using Wpf.Application.Exceptions;
+using Wpf.Application.Interfaces;
 
+using WpfAppCleanArchitecture.Services;
 
-using WpfAppCleanArchitecture.Dialogs;
+namespace WpfAppCleanArchitecture.ViewModels;
 
-public partial class MainViewModel(ICustomerService customerService) : ObservableObject
+public partial class MainViewModel(ICustomerService customerService, IDialogService dialogService) : ObservableObject
 {
-    private readonly ICustomerService _customerService = customerService;
+    public ObservableCollection<CustomerDto> Customers { get; } = [];
+
+    public ObservableCollection<OrderDto> Orders { get; } = [];
 
     [ObservableProperty]
-    private ObservableCollection<CustomerDto> customers = new();
-
-    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(EditCustomerCommand), nameof(DeleteCustomerCommand))]
     private CustomerDto? selectedCustomer;
 
-    [ObservableProperty]
-    private ObservableCollection<string> validationMessages = new();
+    private bool HasSelection => SelectedCustomer is not null;
 
-    [RelayCommand]
-    public async Task LoadCustomersAsync()
+    partial void OnSelectedCustomerChanged(CustomerDto? value)
+        => _ = LoadOrdersAsync(value);
+
+    [RelayCommand(IncludeCancelCommand = true)]
+    private async Task LoadCustomersAsync(CancellationToken cancellationToken)
     {
         try
         {
+            var customers = await customerService.GetAllCustomersAsync(cancellationToken);
+
             Customers.Clear();
-            var result = await _customerService.GetAllCustomersAsync(CancellationToken.None);
-            foreach (var customer in result)
+            foreach (var customer in customers)
                 Customers.Add(customer);
+
+            SelectedCustomer = null;
+        }
+        catch (OperationCanceledException)
+        {
+            // User cancelled; keep whatever was already loaded.
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Error loading customers: " + ex.Message);
+            dialogService.ShowError($"Error loading customers: {ex.Message}");
         }
     }
 
-    [RelayCommand]
-    public async Task AddCustomerAsync()
+    public async Task LoadOrdersAsync(CustomerDto? customer, CancellationToken cancellationToken = default)
     {
-        var newCustomer = new CustomerDto();
-        var dialog = new CustomerDialog(newCustomer);
-        
-        if (dialog.ShowDialog() == true)
+        if (customer is null)
         {
-            try
-            {
-                newCustomer.Name = dialog.Customer.Name; // Assuming dialog returns name 
-                var id = await _customerService.AddCustomerAsync(newCustomer, CancellationToken.None);
-                newCustomer.Id = id;
-
-                Customers.Add(newCustomer);
-            }
-            catch (ValidationException ex)
-            {
-                ShowValidationErrors(ex);
-            }
+            Orders.Clear();
+            return;
         }
-    }
-
-    [RelayCommand]
-    public async Task EditCustomerAsync()
-    {
-        if (SelectedCustomer is null) return;
-
-        var copy = new CustomerDto
-        {
-            Id = SelectedCustomer.Id,
-            Name = SelectedCustomer.Name
-        };
-
-        var dialog = new CustomerDialog(copy);
-        if (dialog.ShowDialog() == true)
-        {
-            try
-            {
-                await _customerService.UpdateCustomerAsync(copy, CancellationToken.None);
-                SelectedCustomer.Name = copy.Name;
-            }
-            catch (ValidationException ex)
-            {
-                ShowValidationErrors(ex);
-            }
-        }
-    }
-
-    [RelayCommand]
-    public async Task DeleteCustomerAsync()
-    {
-        if (SelectedCustomer is null) return;
-
-        var result = MessageBox.Show($"Delete {SelectedCustomer.Name}?", "Confirm", MessageBoxButton.YesNo);
-        if (result != MessageBoxResult.Yes) return;
 
         try
         {
-            await _customerService.DeleteCustomerAsync(SelectedCustomer.Id, CancellationToken.None);
-            Customers.Remove(SelectedCustomer);
+            var orders = await customerService.GetOrdersByCustomerIdAsync(customer.Id, cancellationToken);
+
+            // Selection may have moved on while we were awaiting; don't clobber the newer result.
+            if (!ReferenceEquals(SelectedCustomer, customer)) return;
+
+            Orders.Clear();
+            foreach (var order in orders)
+                Orders.Add(order);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            dialogService.ShowError($"Error loading orders: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private async Task AddCustomerAsync(CancellationToken cancellationToken)
+    {
+        var draft = dialogService.ShowCustomerDialog(null);
+        if (draft is null) return;
+
+        try
+        {
+            var created = await customerService.AddCustomerAsync(draft, cancellationToken);
+
+            Customers.Add(created);
+            SelectedCustomer = created;
+        }
+        catch (ValidationException ex)
+        {
+            dialogService.ShowValidationErrors(ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (Exception ex)
+        {
+            dialogService.ShowError($"Could not add customer: {ex.Message}");
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task EditCustomerAsync(CancellationToken cancellationToken)
+    {
+        var original = SelectedCustomer;
+        if (original is null) return;
+
+        var edited = dialogService.ShowCustomerDialog(original);
+        if (edited is null || edited == original) return;
+
+        try
+        {
+            await customerService.UpdateCustomerAsync(edited, cancellationToken);
+
+            // DTOs are immutable, so swap the item to refresh the grid.
+            var index = Customers.IndexOf(original);
+            if (index >= 0)
+                Customers[index] = edited;
+
+            SelectedCustomer = edited;
+        }
+        catch (ValidationException ex)
+        {
+            dialogService.ShowValidationErrors(ex.Errors.Select(e => e.ErrorMessage));
+        }
+        catch (NotFoundException)
+        {
+            dialogService.ShowError("This customer no longer exists. Reload the list.");
+        }
+        catch (Exception ex)
+        {
+            dialogService.ShowError($"Could not update customer: {ex.Message}");
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task DeleteCustomerAsync(CancellationToken cancellationToken)
+    {
+        var customer = SelectedCustomer;
+        if (customer is null) return;
+
+        if (!dialogService.Confirm($"Delete {customer.Name}?", "Confirm"))
+            return;
+
+        try
+        {
+            await customerService.DeleteCustomerAsync(customer.Id, cancellationToken);
+
+            Customers.Remove(customer);
+            SelectedCustomer = null;
+        }
+        catch (NotFoundException)
+        {
+            // Already gone; just drop it from the list.
+            Customers.Remove(customer);
             SelectedCustomer = null;
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Delete failed: " + ex.Message);
+            dialogService.ShowError($"Delete failed: {ex.Message}");
         }
-    }
-
-    private void ShowValidationErrors(ValidationException ex)
-    {
-        var message = string.Join("\n", ex.Errors
-               .Select(error => $"• {error.PropertyName}: {error.ErrorMessage}"));
-
-        MessageBox.Show(message, "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 }

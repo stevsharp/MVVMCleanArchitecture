@@ -1,7 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
+namespace Wpf.Infrastructure.Data;
+
+/// <summary>
+/// Used only by the <c>dotnet ef</c> tooling so migrations can be added without a startup project.
+/// </summary>
+public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
     public AppDbContext CreateDbContext(string[] args)
     {

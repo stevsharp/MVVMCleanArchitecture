@@ -1,4 +1,4 @@
-﻿
+﻿using Microsoft.EntityFrameworkCore;
 
 using Wpf.Domain.Entities;
 
@@ -6,24 +6,21 @@ namespace Wpf.Infrastructure.Data;
 
 public static class AppDbSeeder
 {
-    public static void Seed(AppDbContext db)
+    public static async Task SeedAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
-        if (db.Customers.Any())
-            return; 
+        if (await db.Customers.AnyAsync(cancellationToken))
+            return;
 
-        var customers = new List<Customer>
-        {
-            new("Alice"),
-            new("Bob"),
-            new("Charlie")
-        };
+        var alice = new Customer("Alice");
+        alice.AddOrder("Order A1");
+        alice.AddOrder("Order A2");
 
-        customers[0].AddOrder("Order A1");
-        customers[0].AddOrder("Order A2");
+        var bob = new Customer("Bob");
+        bob.AddOrder("Order B1");
 
-        customers[1].AddOrder("Order B1");
+        var charlie = new Customer("Charlie");
 
-        db.Customers.AddRange(customers);
-        db.SaveChanges();
+        db.Customers.AddRange(alice, bob, charlie);
+        await db.SaveChangesAsync(cancellationToken);
     }
 }
